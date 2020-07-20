@@ -1,5 +1,6 @@
 const Topic = require('../model/topic')
 const User = require('../model/user')
+const Question =require('../model/questions')
 
 
 class TopicCtr{
@@ -44,6 +45,10 @@ class TopicCtr{
     async listTopicFllower(ctx){
         const user = await User.find({followingTopic:ctx.params.id})
         ctx.body = user
+    }
+    async listQuestions(ctx){
+        const question = await Question.find({topics:ctx.params.id})
+        ctx.body = question
     }
 }
 module.exports = new TopicCtr()

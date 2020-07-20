@@ -1,4 +1,6 @@
 const User = require('../model/user')
+const Questions = require('../model/questions')
+const Answer = require('../model/answer')
 const jsonwebtoken = require('jsonwebtoken')
 const {
     secret
@@ -212,7 +214,93 @@ class UserCrl {
         if(!user){ctx.throw(404,'用户不存在');}
         ctx.body = user.followingTopic
     }
-}
+    async listQuestions(ctx){
+        const questions = await Questions.find({questioner:ctx.params.id})
+        ctx.body =questions
+    }
+    //用户问题点赞
+    async listlLikingAnswer(ctx){
+        const user = await User.findById(ctx.params.id).select('+likingAnswer').populate('likingAnswer')
+        if(!user){
+            ctx.throw(404,'用户不存在')
+        }
+        ctx.body = user.likingAnswer
+    }
 
+    async likingAnswer(ctx,next){
+       const me = await User.findById(ctx.state.user._id).select('+likingAnswer')
+       if(!me.likingAnswer.map(id=>id.toString()).includes(ctx.params.id)){
+           me.likingAnswer.push(ctx.params.id)
+           me.save()
+           await Answer.findByIdAndUpdate(ctx.params.id,{ $inc:{ voteCount: 1}})
+       }
+       ctx.status = 204
+       await next()
+    }
+
+    async unLikingAnswer(ctx){
+        const me =await User.findById(ctx.state.user._id).select('+likingAnswer')
+        const index =me.likingAnswer.map(id=>id.toString()).indexOf(ctx.params.id)
+        if(index>-1){
+            me.likingAnswer.splice(index,1)
+            me.save()
+            await Answer.findByIdAndUpdate(ctx.params.id,{$inc:{voteCount: -1}})
+        }
+        ctx.status=204
+    }
+    //用户踩逻辑
+    async listDisLikingAnswer(ctx){
+        const user = await  User.findById(ctx.params.id).select('+disLikingAnswer').populate('disLikingAnswer')
+        if(!user){
+            ctx.throw('用户不存在')
+        }
+        ctx.body = user.disLikingAnswer
+    }
+    async disLikingAnswer(ctx,next){
+        const me  = await User.findById(ctx.state.user._id).select('+disLikingAnswer')
+        if(!me.disLikingAnswer.map(id =>id.toString()).includes(ctx.params.id)){
+            me.disLikingAnswer.push(ctx.params.id)
+            me.save()
+        }
+        ctx.status=204
+        await next()
+    }
+    async unDisLikingAnswer(ctx){
+        const me = await User.findById(ctx.state.user._id).select('+disLikingAnswer')
+        const index =me.disLikingAnswer.map(id=>id.toString()).indexOf(ctx.params.id)
+        if(index > -1){
+            me.disLikingAnswer.splice(index,1)
+            me.save()
+        }
+        ctx.status=204
+    }
+    //这是答案收藏
+    async listCollectingAnswer(ctx){
+        const user = await User.findById(ctx.params.id).select('+collectingAnswer').populate('collectingAnswer')
+        if(!user){
+            ctx.throw(404,"未找到此用户的收藏")
+        }
+        ctx.body = user.collectingAnswer
+    }
+
+    async collectingAnswer (ctx){
+        const user = await User.findById(ctx.state.user._id).select('collectingAnswer')
+        if(!user.collectingAnswer.map(id=>id.toString()).includes(ctx.params.id)){
+            user.collectingAnswer.push(ctx.params.id)
+            user.save()
+        }
+        ctx.status = 204
+    }
+    async uncollectingAnswer(ctx){
+        const user = await User.findById(ctx.state.user._id).select('collectingAnswer')
+        const index = user.collectingAnswer.map(id=>id.toString()).indexOf(ctx.params.id)
+        if(index>-1){
+            user.collectingAnswer.splice(index,1)
+            user.save()
+        }
+        ctx.status = 204
+    }
+
+}
 
 module.exports = new UserCrl();
