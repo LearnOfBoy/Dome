@@ -7,6 +7,6 @@ const topiicSchema = new Schema({
     name:{type:String, required: true},
     avatar_url:{ type: String, required:false},
     introduction:{type:String,select:true,required:false}
-})
+},{timestamps:true})
 
 module.exports = model('Topic',topiicSchema)
